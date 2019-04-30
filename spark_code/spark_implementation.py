@@ -5,7 +5,7 @@ import numpy as np
 import scipy.stats as stats
 
 ### GLOBAL VARIABLES
-conf = SparkConf().setMaster('local').setAppName('pacs');
+conf = SparkConf().setMaster('local[2]').setAppName('pacs');
 sc = SparkContext(conf = conf);
 GUIDE_START = 0 #start index of guide sequence
 GUIDE_END = 20 #end index of guide sequence
