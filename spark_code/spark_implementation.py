@@ -112,18 +112,40 @@ class Gene:
 
 
 #extract gene names and read counts from unsorted and sorted populations, and perform Fisher's exact test to determine enrichment p-value
-def calcGeneEnrich(unsortedGeneCountDict, unsortedTotMatches, sortedGeneCountDict, sortedTotMatches):
+def calcGeneEnrich(genesDict, unsorted_gene_counts_dict, unsorted_total_reads, sorted_gene_counts_dict, sorted_total_reads):
 	geneStatsDict = {}; #new dictionary to hold Gene objects
-	keys = unsortedGeneCountDict.keys();
+	keys = genesDict.keys();
 	for key in keys:
+		#determine number of reads matched to gene in control/unsorted population
+		unsorted_count = unsorted_gene_counts_dict.get(key, None);
+		if unsorted_count == None: #check if gene had any sequence counts in control file
+			unsorted_count = 0;
+
+		#determine number of reads matched to gene in experimental/sorted population
+		sorted_count = sorted_gene_counts_dict.get(key, None);
+		if sorted_count == None: #check if gene had any sequence counts in experimental file
+			sorted_count = 0;
+
 		#make new gene object with the correct counts
-		gene = Gene(key, unsortedGeneCountDict[key], unsortedTotMatches, sortedGeneCountDict[key], sortedTotMatches);
+		gene = Gene(key, unsorted_count, unsorted_total_reads, sorted_count, sorted_total_reads);
 		geneStatsDict[key] = gene;
 		oddsratio, pValue = stats.fisher_exact([[gene.unsortedReads, gene.unsortedTotal], [gene.sortedReads, gene.sortedTotal]]);
 		gene.enrichPVal = pValue;
 	
 
 	return geneStatsDict;
+
+#prints the enrichment p-values for each gene to a .csv file. The file is ranked from lowest FDR-corrected p-value to highest
+def printGeneEnrichStats(geneStatsDict, output_file):
+	genesList = list( geneStatsDict.values() );
+	genesList.sort(key = lambda gene: gene.enrichPVal);
+	outputName = str(output_file+"_gene_enrichment_calculation.csv");
+	with open(outputName, 'w') as csvfile:
+		mywriter = csv.writer(csvfile, delimiter=',');
+		mywriter.writerow(["Gene Name",  "p-value", "Reads in Unsorted Population", "Total Reads in Unsorted Population", "Reads in Sorted Population", "Total Reads in Sorted Population"]);
+		for gene in genesList:
+			mywriter.writerow([gene.name, gene.enrichPVal, gene.unsortedReads, gene.unsortedTotal, gene.sortedReads, gene.sortedTotal]);
+		print("Printed Gene Enrichment stats");
 
 
 
@@ -141,9 +163,10 @@ def main(argv):
 	args = parser.parse_args();
 
 	#necessary dictionaries to keep track of guide/gene info
-	guideGeneDict = createDictionaries(args.guides_file);
+	guideGeneDict, genesDict = createDictionaries(args.guides_file);
 
 	### PERFORM MAPPING and EDIT DISTANCE for control sequences
+	print('Mapping control sequences');
 	unsorted_rdd = sc.textFile(args.unsorted_fastq); #create RDD for unsorted reads
 	unsorted_total_reads = unsorted_rdd.count(); #get number of total sequences in the file
 	#map the sequences to guides, so 'unsorted_rdd' contains tuples (guide_seq, 1)
@@ -155,6 +178,7 @@ def main(argv):
 	unsorted_gene_counts = unsorted_gene_counts.collect(); #get a list of tuples (gene, count)
 
 	### PERFORM MAPPING and EDIT DISTANCE for experimental sequences
+	print('Mapping experimental sequences');
 	sorted_rdd = sc.textFile(args.sorted_fastq); #create RDD for sorted reads
 	sorted_total_reads = unsorted_rdd.count(); #get number of total sequences in the file
 	#map the sequences to guides, so 'sorted_rdd' contains tuples (guide_seq, 1)
@@ -166,11 +190,13 @@ def main(argv):
 	sorted_gene_counts = sorted_gene_counts.collect(); #get a list of tuples (gene, count)
 
 	### PERFORM GENE ENRICHMENT ANALYSIS
+	print('Performing gene enrichment analysis');
 	unsorted_gene_counts_dict = dict(unsorted_gene_counts); #create dictionary out of tuples
 	sorted_gene_counts_dict = dict(sorted_gene_counts); #create dictionary out of tuples
 	gene_names
 	#calculation gene enrichment for 
-	geneStatsDict = calcGeneEnrich(unsorted_gene_counts_dict, unsorted_total_reads, sorted_gene_counts_dict, sorted_total_reads);
+	geneStatsDict = calcGeneEnrich(genesDict, unsorted_gene_counts_dict, unsorted_total_reads, sorted_gene_counts_dict, sorted_total_reads);
+	printGeneEnrichStats(geneStatsDict, args.output_file);
 
 
 
