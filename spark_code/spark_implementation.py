@@ -12,9 +12,10 @@ GUIDE_END = 20 #end index of guide sequence
 
 
 
-#this method creates the dictionary that maps guide sequence to gene name
+#this method creates a dictionary that maps guide sequence to gene name and a dictionary of the genes in our database
 def createDictionaries(input_file):
 	guideGeneDict = {}; #dictionary to keep track of which gene each guide belongs to
+	genesDict = {}; #dictionary to store gene name {'gene_name':0} for easy referencing
 	# open library of guide sequences (.csv file) and create dictionary mapping guide sequence to gen
 	try:
 		with open(input_file) as csvfile:
@@ -24,10 +25,11 @@ def createDictionaries(input_file):
 				guideSeq = row[7];
 				gene = row[2];
 				guideGeneDict[guideSeq] = gene; #create guide->gene mapping in guideGeneDict
+				genesDict[gene] = 0; #create entry for gene in 'genesDict'
 
 	except:
 		print('could not open', input_file);
-	return guideGeneDict;
+	return guideGeneDict, genesDict;
 
 
 #function to compute the edit distance between strings A and B using dynamic programming
@@ -96,6 +98,32 @@ def map_guide_to_gene(guide_count, guideGeneDict):
 	return (gene, count);
 
 
+#class to hold the information regarding each gene
+class Gene:
+	def __init__(self, name, unsortedReads, unsortedTotal, sortedReads, sortedTotal):
+		self.name = name; #keeps track of gene name
+		self.unsortedReads = unsortedReads;
+		self.unsortedTotal = unsortedTotal;
+		#sorted stats
+		self.sortedReads = sortedReads;
+		self.sortedTotal = sortedTotal;
+		#p-values
+		self.enrichPVal = 0;
+
+
+#extract gene names and read counts from unsorted and sorted populations, and perform Fisher's exact test to determine enrichment p-value
+def calcGeneEnrich(unsortedGeneCountDict, unsortedTotMatches, sortedGeneCountDict, sortedTotMatches):
+	geneStatsDict = {}; #new dictionary to hold Gene objects
+	keys = unsortedGeneCountDict.keys();
+	for key in keys:
+		#make new gene object with the correct counts
+		gene = Gene(key, unsortedGeneCountDict[key], unsortedTotMatches, sortedGeneCountDict[key], sortedTotMatches);
+		geneStatsDict[key] = gene;
+		oddsratio, pValue = stats.fisher_exact([[gene.unsortedReads, gene.unsortedTotal], [gene.sortedReads, gene.sortedTotal]]);
+		gene.enrichPVal = pValue;
+	
+
+	return geneStatsDict;
 
 
 
@@ -115,7 +143,9 @@ def main(argv):
 	#necessary dictionaries to keep track of guide/gene info
 	guideGeneDict = createDictionaries(args.guides_file);
 
+	### PERFORM MAPPING and EDIT DISTANCE for control sequences
 	unsorted_rdd = sc.textFile(args.unsorted_fastq); #create RDD for unsorted reads
+	unsorted_total_reads = unsorted_rdd.count(); #get number of total sequences in the file
 	#map the sequences to guides, so 'unsorted_rdd' contains tuples (guide_seq, 1)
 	unsorted_rdd = unsorted_rdd.map(lambda seq: map_sequence(seq, guideGeneDict));
 	unsorted_guide_counts = unsorted_rdd.reduceByKey(lambda a, b: a+b); #get total count for each guide
@@ -124,15 +154,35 @@ def main(argv):
 	unsorted_gene_counts = unsorted_gene_counts.reduceByKey(lambda a, b: a+b); #get the total count for each gene
 	unsorted_gene_counts = unsorted_gene_counts.collect(); #get a list of tuples (gene, count)
 
-	#write the counts of each URL to an output file
-	totCount = 0;
-	with open(args.output_file, 'w') as ofile:
-		for tup in unsorted_gene_counts:
-			ofile.write(tup[0] + '\t' + str(tup[1]) +'\n');
-			totCount += tup[1];
-	ofile.close();
+	### PERFORM MAPPING and EDIT DISTANCE for experimental sequences
+	sorted_rdd = sc.textFile(args.sorted_fastq); #create RDD for sorted reads
+	sorted_total_reads = unsorted_rdd.count(); #get number of total sequences in the file
+	#map the sequences to guides, so 'sorted_rdd' contains tuples (guide_seq, 1)
+	sorted_rdd = sorted_rdd.map(lambda seq: map_sequence(seq, guideGeneDict));
+	sorted_guide_counts = sorted_rdd.reduceByKey(lambda a, b: a+b); #get total count for each guide
+	#map guide counts to genes
+	sorted_gene_counts = sorted_guide_counts.map(lambda guide_count: map_guide_to_gene(guide_count, guideGeneDict));
+	sorted_gene_counts = sorted_gene_counts.reduceByKey(lambda a, b: a+b); #get the total count for each gene
+	sorted_gene_counts = sorted_gene_counts.collect(); #get a list of tuples (gene, count)
 
-	print("Total count: {0}".format(totCount));
+	### PERFORM GENE ENRICHMENT ANALYSIS
+	unsorted_gene_counts_dict = dict(unsorted_gene_counts); #create dictionary out of tuples
+	sorted_gene_counts_dict = dict(sorted_gene_counts); #create dictionary out of tuples
+	gene_names
+	#calculation gene enrichment for 
+	geneStatsDict = calcGeneEnrich(unsorted_gene_counts_dict, unsorted_total_reads, sorted_gene_counts_dict, sorted_total_reads);
+
+
+
+	#write the counts of each URL to an output file
+	# totCount = 0;
+	# with open(args.output_file, 'w') as ofile:
+	# 	for tup in unsorted_gene_counts:
+	# 		ofile.write(tup[0] + '\t' + str(tup[1]) +'\n');
+	# 		totCount += tup[1];
+	# ofile.close();
+
+	
 
 
 #run main method
