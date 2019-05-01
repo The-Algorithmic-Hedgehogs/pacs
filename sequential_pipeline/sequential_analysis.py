@@ -63,7 +63,6 @@ def editDistDP(str1, str2, max):
 
 GUIDE_START = 0 #start index of guide sequence
 GUIDE_END = 20 #end index of guide sequence
-BEFORE_GUIDE = "CACCG" #identifies sequence after guide
 
 #matches the DNA sequencing reads to the guides. Returns the number of perfectly matched reads
 def count_spacers(fastq_file, countDict, guideGeneDict, geneCountDict): 
@@ -173,7 +172,6 @@ def main(argv):
 
 	#necessary dictionaries to keep track of guide/gene info
 	countDict, guideGeneDict, geneCountDict, geneToGuideDict = createDictionaries(args.guides_file);
-	# print(len(guideGeneDict.keys()))
 	print("created required dictionaries");
 	
 	# count reads per guides and per gene for unsorted population if the fastq file is provided
