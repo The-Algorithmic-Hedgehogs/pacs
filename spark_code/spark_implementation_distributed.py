@@ -198,17 +198,6 @@ def main(argv):
 	#calculation gene enrichment for 
 	geneStatsDict = calcGeneEnrich(genesDict, unsorted_gene_counts_dict, unsorted_total_reads, sorted_gene_counts_dict, sorted_total_reads);
 	printGeneEnrichStats(geneStatsDict, args.output_file);
-
-
-
-	#write the counts of each URL to an output file
-	# totCount = 0;
-	# with open(args.output_file, 'w') as ofile:
-	# 	for tup in unsorted_gene_counts:
-	# 		ofile.write(tup[0] + '\t' + str(tup[1]) +'\n');
-	# 		totCount += tup[1];
-	# ofile.close();
-
 	
 
 
