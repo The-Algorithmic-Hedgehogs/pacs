@@ -168,7 +168,7 @@ def main(argv):
 	guideGeneDict, genesDict = createDictionaries(args.guides_file);
 
 	### PERFORM MAPPING and EDIT DISTANCE for control sequences
-	print('Mapping control sequences\n\n\n\n');
+	print('\n\n\n\nMapping control sequences\n\n\n\n');
 	os_command = "hadoop fs -put " + args.unsorted_fastq; #create command to put control file in Hadoop file system
 	os.system(os_command); #run the OS Command 
 
@@ -183,7 +183,7 @@ def main(argv):
 	unsorted_gene_counts = unsorted_gene_counts.collect(); #get a list of tuples (gene, count)
 
 	### PERFORM MAPPING and EDIT DISTANCE for experimental sequences
-	print('Mapping experimental sequences\n\n\n\n');
+	print('\n\n\n\nMapping experimental sequences\n\n\n\n');
 	os_command = "hadoop fs -put " + args.sorted_fastq; #create command to put experimental file in Hadoop file system
 	os.system(os_command); #run the OS Command
 
