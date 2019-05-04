@@ -9,8 +9,10 @@ The advent of technological advancements such as high-throughput sequencing and 
 ## Problem Description
 
 The output of the biological experiment for CRISPR genetic screens is two files of DNA sequences:<br>
-1) one file contains the DNA sequences from the control population of cells, which we will call the *control file*
-2) the second file contains the DNA sequences from cells that were selected for some phenotype of interest, which we will call the *experimental file*
+1) one file contains the DNA sequences from the control population of cells, which we will call the *control file*<br>
+2) the second file contains the DNA sequences from cells that were selected for some phenotype of interest, which we will call the *experimental file*.
+
+Each file generally contains 10-12M DNA sequences that need to be processed. Each DNA sequence must be matched to a gold-standard [database of ~80,000 sequences](https://github.com/rohuba/PACS/blob/master/data/Brie_CRISPR_library_with_control_guides.csv) to determine its origin. This matching process is just a string-to-string comparison. Generally, about 75% of the DNA sequences in a file can be perfectly matched to one of the 80,000 sequences, while the other 25% of the sequences do not. If the DNA sequence cannot be matched perfectly to one of the gold-standard sequences, then the edit distance between the DNA sequence and each of the 80,000 gold-standard sequences must be calculated. This currently takes ~36s per input sequence. Generally, 2-3M input sequences do not perfectly match the database of sequences, so calculating the edit distance between each of these 2-3M sequences and the database of 80,000 sequences would take as much as 20,000 hours (36sec x 2M sequences / 3600 sec/hr). 
 
 ## Existing Pipeline
 
@@ -22,7 +24,7 @@ TO DO
 
 # Sequential Code Profiling
 
-The sequential code `count_spacers_with_ED.py` was profiled using the `cProfile` Python package. The file was run with a control file of 100 sequences (*Genome-Pos-3T3-Unsorted_100_seqs.txt*) and an experimental file of 100 sequences (*Genome-Pos-3T3-Bot10_100_seqs.txt*). Each of these input files contained 75 sequencing reads that could be perfectly matched to the database of 80,000 guide sequences and 25 sequencing reads that needed an edit distance calculation. This breakdown was representative of the proportion of sequencing reads in the full input files; ~25% of sequencing reads cannot be perfectly matched to one of the 80,000 guide sequences. The exact command that was run was: `python -m cProfile -o 100_seq_stats.profile count_spacers_with_ED.py -g ../data/Brie_CRISPR_library_with_controls_FOR_ANALYSIS.csv -u ../data/Genome-Pos-3T3-Unsorted_100_seqs.txt -s ../data/Genome-Pos-3T3-Bot10_100_seqs.txt -o cProfile_test_output`. This code was run on a Macbook Pro, with a 2.2 GHz Intel Core i7 processor with 6 cores. The profiling information was saved in a file called *100_seq_stats.profile*. The following results are from the `pstats` package.
+The sequential code `sequential_analysis.py` was profiled using the `cProfile` Python package. The file was run with a control file of 100 sequences (*control_file_100_seqs.txt*) and an experimental file of 100 sequences (*experimental_file_100_seqs.txt*). Each of these input files contained 75 sequencing reads that could be perfectly matched to the database of 80,000 guide sequences and 25 sequencing reads that needed an edit distance calculation. This breakdown was representative of the proportion of sequencing reads in the full input files; ~25% of sequencing reads cannot be perfectly matched to one of the 80,000 guide sequences. The exact command that was run was: `python -m cProfile -o 100_seq_stats.profile count_spacers_with_ED.py -g ../data/Brie_CRISPR_library_with_controls_FOR_ANALYSIS.csv -u ../data/Genome-Pos-3T3-Unsorted_100_seqs.txt -s ../data/Genome-Pos-3T3-Bot10_100_seqs.txt -o cProfile_test_output`. This code was run on a Macbook Pro, with a 2.2 GHz Intel Core i7 processor with 6 cores. The profiling information was saved in a file called *100_seq_stats.profile*. The following results are from the `pstats` package.
 ```python
 import pstats
 
