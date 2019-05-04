@@ -8,7 +8,9 @@ The advent of technological advancements such as high-throughput sequencing and 
 
 ## Problem Description
 
-TO DO
+The output of the biological experiment for CRISPR genetic screens is two files of DNA sequences:<br>
+1) one file contains the DNA sequences from the control population of cells, which we will call the *control file*
+2) the second file contains the DNA sequences from cells that were selected for some phenotype of interest, which we will call the *experimental file*
 
 ## Existing Pipeline
 
@@ -156,4 +158,7 @@ TO DO
 
 # References
 
-TO DO
+1. Pusapati GV, Kong JH, Patel BB, Krishnan A, Sagner A,
+Kinnebrew M, Briscoe J, Aravind L, Rohatgi R: CRISPR screens
+uncover genes that regulate target cell sensitivity to the
+morphogen sonic hedgehog. Dev Cell 2018, 44:113-129 e118.
