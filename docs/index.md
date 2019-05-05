@@ -27,7 +27,16 @@ The code for the exisiting sequential pipeline for analyzing the results of CRIS
 Command-line Example:<br>
 `python sequential_analysis.py -u ../data/control_file_100_seqs.txt -s ../data/experimental_file_100_seqs.txt -g ../data/Brie_CRISPR_library_with_controls_guides.csv -o test_output`
 
-The output of the script is a CSV file with six columns. 
+#### talk about process of existing pipeline
+
+The output of the script is a CSV file with six columns with the following information:
+    1. Name of the gene<br>
+    2. $p$-value from Fisher's exact test for enrichment<br>
+    3. Number of DNA sequences from *control file* mapping to gold-standard sequences contained in this gene<br>
+    4. Total number of DNA sequences in *control file*
+    5. Number of DNA sequences from *experimental file* mapping to gold-standard sequences contained in this gene<br>
+    6. Total number of DNA sequences in *experimental file*
+    
 
 Other pipelines have also been built.
 
