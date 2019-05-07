@@ -55,6 +55,8 @@ The output of the script is a CSV file with six columns with the following infor
     5. Number of DNA sequences from *experimental file* mapping to gold-standard sequences contained in this gene<br>
     6. Total number of DNA sequences in *experimental file*
     
+An example of the output file for running the sequential analysis on the control file `control_file_100_seqs.txt` and the experimental file `experimental_file_100_seqs.txt` can be found [here](https://github.com/rohuba/PACS/blob/master/sequential_pipeline/test_output_gene_enrichment_calculation.csv).
+    
 # Project Design
 
 ## Sequential Code Profiling
