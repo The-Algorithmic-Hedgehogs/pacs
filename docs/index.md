@@ -360,6 +360,14 @@ To ensure that the using 20 cores per instance is correct, we also did a test wi
 
 500 tasks/partitions for these files of 1000 sequences seems optimal since there is noticeable performance improvement from 250 tasks to 500 tasks and little improvement from 500 tasks to 750 tasks. We also observe that there is some increase in the overhead when using more instances/nodes because the speed-up does not scale linearly as we increase the number of total cores used. When the number of tasks is kept constant (n=500), we get a speed-up of 24.7x with 40 total cores, so in a perfect world, we would get a speed-up of ~49x with 80 cores. However, we only get a speed up of 42.8x when we use 80 total cores. There must be an increase in communication and memory management that Spark has to deal with when more cores are used, which is expected.
 
+#### Testing with m4.16xlarge Instances in Cluster
+Lastly, we scaled up the instance types by creating a Spark cluster of *m4.16xlarge* instances, which each have 32 physical cores alloted to them. We had asked AWS for at least 9 *m4.16xlarge* so we could use 8 worker nodes, however AWS denied this request due to our lack of usage and their resource constraints. A compromise was made at 5 instances. Thus, we created a Spark cluster of 1 master node and 4 worker nodes.
+
+The following command was run:<br>
+`spark-submit --num-executors 4 --executor-cores 32 spark_implementation_distributed.py -u control_file_1000_seqs.txt -s experimental_file_1000_seqs.txt -g Brie_CRISPR_library_with_control_guides.csv -o spark_run_m416 -n 250`.
+Parameters were varied as seen in the table below.
+
+The speed-up is calculated against our calculation of how long it would take to process this data on one core of a m4.xlarge instance.
 
 
 
