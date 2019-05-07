@@ -153,6 +153,8 @@ To calculate edit distance we applied an dynamic programming algorithm known as 
 
 ## Infrastructure
 
+![](pipeline_graph2.jpg)
+
 We used AWS EMR Spark Clusters, tested with multiple instance types.
 
 #### m4.xlarge instance
