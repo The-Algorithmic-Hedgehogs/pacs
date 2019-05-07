@@ -242,7 +242,7 @@ TO DO
 
 # Results
 
-
+![](speedup.png)
 
 * * * 
 # Cost-Performance Analysis
