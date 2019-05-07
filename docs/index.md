@@ -103,6 +103,8 @@ The edit distance calculation is currently nested within the function `count_spa
 
 We want to parallelize this matching process by using a Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself. However, for a given sequencing read, we should be able to parallelize the 80,000 edit distance calculations that need to be performed between the sequencing read and the guides by using Python multi-threading.
 
+![](pipeline_graph.jpg)
+
 ## Overheads 
 
 Since we do not know for which sequences we will need to perform edit distance calculations, load-balancing is the main overhead we anticipate dealing with because we do not want one or two cores slowed down with having to compute too many edit distance calculations. We would like to spread the number of edit distance calculations out evenly between cores by tuning the number of Spark tasks. It may be good to shuffle the order of the sequencing reads because sometimes many sequences that require edit distance calculations are adjacent to each other in the input file.
@@ -145,25 +147,90 @@ where $p$ is the number of processors/cores. In our case, $c=0.994$ and the tabl
 
 Thus, we almost achieve perfect weak-scaling because we can split up larger problem-sizes (which would be larger input files in our case) over more processors to achieve about the same runtime.
 
-## Data
-
-TO DO
-
-## Pipeline
-
-![](pipeline_graph.jpg)
-
-
-TO DO
-
 ## Edit Distance Algorithm
 
-TO DO
-
+To calculate edit distance we applied an dynamic programming algorithm known as the [Wagner-Fischer algorithm](https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm). In recognition of the fact that the vast majority of reference sequences would bare little resemblence to any particular test sequence, we implemented a speed-up heuristic that aborted the edit distance calculation for any two sequences once the edit distance grew any larger than 3. Implementing this heuristic provided a speed-up of just over 3. The reasoning for a cut-off of 3 for edit distances is that for a sequence of 20 base-pairs, more than three differences is indicative of the sequences being poorly matched.
 
 ## Infrastructure
 
-TO DO
+We used AWS EMR Spark Clusters, tested with multiple instance types.
+
+#### m4.xlarge instance
+
+The m4.xlarge instances have 4 vCPUs, 16GiB memory, and 32 GiB of EBS storage. The following information contain the architecture of the instance, the number of vCPUs, threads per vCPU/core, the processor, and the cache sizes:<br>
+`Architecture:          x86_64
+CPU(s):                4
+On-line CPU(s) list:   0-3
+Thread(s) per core:    2
+Core(s) per socket:    2
+Socket(s):             1
+Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              46080K`
+
+Depending on the instance usage, different python commands need to be used. One needs to run `export PYSPARK_PYTHON=python3.5` (for a stand-alone instance) or `export PYSPARK_PYTHON=python3.4` (for a cluster) in command line to use python3.4 as default python for Spark Cluster. Spark clusters already have `numpy` and `scipy`.
+
+#### m4.10xlarge instance
+
+Information about m4.10xlarge instances: <br>
+`Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                40
+On-line CPU(s) list:   0-39
+Thread(s) per core:    2
+Core(s) per socket:    10
+Socket(s):             2
+NUMA node(s):          2
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 63
+Model name:            Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz
+Stepping:              2
+CPU MHz:               2142.562
+CPU max MHz:           3000.0000
+CPU min MHz:           1200.0000
+BogoMIPS:              4800.07
+Hypervisor vendor:     Xen
+Virtualization type:   full
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              30720K`
+
+From this information, we only really have 20 cores available to use, so this is the number of executor cores passed to spark-submit.
+
+#### m4.16xlarge instance
+
+Information about m4.16xlarge instances: <br>
+`Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                64
+On-line CPU(s) list:   0-63
+Thread(s) per core:    2
+Core(s) per socket:    16
+Socket(s):             2
+NUMA node(s):          2
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 79
+Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz
+Stepping:              1
+CPU MHz:               1831.914
+CPU max MHz:           3000.0000
+CPU min MHz:           1200.0000
+BogoMIPS:              4600.12
+Hypervisor vendor:     Xen
+Virtualization type:   full
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              46080K`
+
+From this information, we only really have 32 cores available to use, so this is the number of executor cores passed to spark-submit.
 
 * * *
 
@@ -175,14 +242,10 @@ TO DO
 
 # Results
 
-## Performance Evaluation
+![](speedup.png)
 
-TO DO
-
-## Optimizations and Overheads
-
-TO DO
-
+* * * 
+# Cost-Performance Analysis
 * * *
 
 # Discussion
