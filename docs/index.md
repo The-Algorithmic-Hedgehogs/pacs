@@ -20,8 +20,6 @@ In our particular experimental problem, we are looking at the [Shh](https://en.w
 
 ## Problem Description
 
-![](pipeline_graph.jpg)
-
 The output of the biological experiment for a CRISPR genetic screen consists of two files of DNA sequences:<br>
 1) one file contains the DNA sequences from the control population of cells, (those that do not express the phenotype of interest) which we will call the *control file*<br>
 2) the second file contains the DNA sequences from cells that were selected for some phenotype of interest, which we will call the *experimental file*.
@@ -36,7 +34,8 @@ MaGECK is an open-source pipeline for analyzing CRISPR screens (2) based on mean
 
 
 ## Existing Pipeline
-The existing pipeline (1) takes in a *control file* and *experiment file* generated from the DNA sequencing step of the genetic screen. It also takes in a file containing the "database" of 80,000 gold-standard sequences. First, every DNA sequence in the *control file* is mapped to one of the gold-standard sequences; if the sequence matches one of the gold-standard sequences, then the match count for gold-standard sequence is incremented and the match count for corresponding gene is incremented. If no perfect match can be determined, then the edit distance between the control DNA sequence and every gold-standard sequence is calculated. The gold-standard DNA sequence with the lowest edit distance is found, and its match count and the match count for the corresponding gene are incremented. Once all the DNA sequences in the *control file* have been matched, this process is repeated for the *experimental file*. The match counts for genes in the *control file* and the *experiment file* are aggregated, and a Fisher's exact test is run on the match counts from both files to determine if there is a significant change in the number of matched sequences for each gene in the *experimental file* when compared to the *control file*. The output of the pipeline consists of, for each gene, its Fisher's exact test p-value, the number of matching sequences in the *control file*, the total number of sequences in the *control file*, the number of matching sequences in the *experimental file*, and the total number of sequences in the *experimental file*. These stats are written to a CSV file.
+![](pipeline_graph.jpg)
+Shown above, the existing pipeline (1) takes in a *control file* and *experiment file* generated from the DNA sequencing step of the genetic screen. It also takes in a file containing the "database" of 80,000 gold-standard sequences. First, every DNA sequence in the *control file* is mapped to one of the gold-standard sequences; if the sequence matches one of the gold-standard sequences, then the match count for gold-standard sequence is incremented and the match count for corresponding gene is incremented. If no perfect match can be determined, then the edit distance between the control DNA sequence and every gold-standard sequence is calculated. The gold-standard DNA sequence with the lowest edit distance is found, and its match count and the match count for the corresponding gene are incremented. Once all the DNA sequences in the *control file* have been matched, this process is repeated for the *experimental file*. The match counts for genes in the *control file* and the *experiment file* are aggregated, and a Fisher's exact test is run on the match counts from both files to determine if there is a significant change in the number of matched sequences for each gene in the *experimental file* when compared to the *control file*. The output of the pipeline consists of, for each gene, its Fisher's exact test p-value, the number of matching sequences in the *control file*, the total number of sequences in the *control file*, the number of matching sequences in the *experimental file*, and the total number of sequences in the *experimental file*. These stats are written to a CSV file.
 
 The code for the exisiting sequential pipeline for analyzing the results of CRISPR genetic screens can be found [here](https://github.com/rohuba/PACS/blob/master/sequential_pipeline/sequential_analysis.py). This script requires use of Python3 and relies on the use the `numpy` and `scipy` packages. Any user can install a Conda environment using the [YAML file](https://github.com/rohuba/PACS/blob/master/cs205_final_project.yml) provided to run this sequential code. The Python script `sequential_analysis.py` takes in multiple arguments through the use of command-line flags:<br>
     1. `-u` indicates the file following file path if for the *control file*<br>
@@ -112,11 +111,9 @@ We want to parallelize this matching process by using a Spark cluster to have ac
 
 The sequence matching and edit distance portion of our code accounts for 99.4% of the runtime in our small example. With larger problem sizes, this percentage should only increase because the number of operations performed after the sequence matching and edit distance section is constant.
 
-Amdahl's Law states that potential program speedup $S_t$ is defined by the fraction of code $c$ that can be parallelized, according to the formula
-$$
-S_t = \dfrac{1}{(1-c)+\frac{c}{p}}
-$$
-where $p$ is the number of processors/cores. In our case, $c=0.994$ and the table below shows the speed-ups for $2$, $4$, $8$, $64$, and $128$ processors/cores:
+Amdahl's Law states that potential program speedup ![equation](https://latex.codecogs.com/gif.latex?S_t) is defined by the fraction of code *c* that can be parallelized, according to the formula<br>
+![equation](https://latex.codecogs.com/gif.latex?S_t&space;=&space;\dfrac{1}{(1-c)&plus;\frac{c}{p}})<br>
+where *p* is the number of processors/cores. In our case, *c=0.994* and the table below shows the speed-ups for 2, 4, 8, 64, and 128 processors/cores:
 
 |processors|speed-up|
 |----------|--------|
@@ -126,13 +123,11 @@ where $p$ is the number of processors/cores. In our case, $c=0.994$ and the tabl
 |64|46.44x|
 |128|72.64x|
 
-Thus, our strong-scaling is almost linear when $p$ is small, but we observe that this begins to break down because we only get 73x speed-up if we were to use 128 processors/cores.
+Thus, our strong-scaling is almost linear when *p* is small, but we observe that this begins to break down because we only get 73x speed-up if we were to use 128 processors/cores.
 
-Gustafson's Law states larger systems should be used to solve larger problems because there should ideally be a fixed amount of parallel work per processor. The speed-up $S_t$ is calculated by
-$$
-S_t = 1 - c +c\cdot p
-$$
-where $p$ is the number of processors/cores. In our case, $c=0.994$ and the table below shows the speed-ups for $2$, $4$, $8$, $64$, and $128$ processors/cores:
+Gustafson's Law states larger systems should be used to solve larger problems because there should ideally be a fixed amount of parallel work per processor. The speed-up ![equation](https://latex.codecogs.com/gif.latex?S_t) is calculated by<br>
+![equation](https://latex.codecogs.com/gif.latex?S_t&space;=&space;1&space;-&space;c&space;&plus;c\cdot&space;p)<br>
+where *p* is the number of processors/cores. In our case, *c=0.994* and the table below shows the speed-ups for 2, 4, 8, 64, and 128 processors/cores:
 
 |processors|speed-up|
 |----------|--------|
