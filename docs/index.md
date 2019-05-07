@@ -102,10 +102,10 @@ p.sort_stats('time').print_stats(20)
 
 The majority of runtime is spent with `editDistDP` function. 534 of the 537 seconds, which accounts for 99.4% of the runtime, are spent calculating the edit distance between 50 sequencing reads and 80,000 guides. Generally, the input files contain ~10M sequencing reads, and about 25% of the sequences cannot be matched perfectly to one of the 80,000 guides. Thus for two input files of ~10M sequencing reads (~20M reads total), there are ~4-5M sequencing reads for which the edit distance calculations must be performed. If this code was run sequentially, this would require 10,000 hours of runtime. Therefore, we need to parallelize this portion of the code.
 
-The edit distance calculation is currently nested within the function `count_spacers`, which matches each sequencing read from the input files to one of the 80,000 guides. For 200 sequencing reads provided as input, 1.4 seconds are spent performing the matching. This is only 0.007 seconds per sequencing read (using the 1.4 seconds from the *tottime* column since the *cumtime* takes into account the edit distance calculation). This number grows large if we have 20M sequencing reads - it would take ![equation](https://latex.codecogs.com/gif.latex?\inline&space;\dfrac{0.007\text{seconds/read}&space;\cdot&space;20\text{M&space;reads}}{3600\text{seconds/hour}}&space;=&space;39\text{hours}]). Thus, the entire matching process of our workflow needs to be parallelized.
+The edit distance calculation is currently nested within the function `count_spacers`, which matches each sequencing read from the input files to one of the 80,000 guides. For 200 sequencing reads provided as input, 1.4 seconds are spent performing the matching. This is only 0.007 seconds per sequencing read (using the 1.4 seconds from the *tottime* column since the *cumtime* takes into account the edit distance calculation). This number grows large if we have 20M sequencing reads - it would take ![equation](https://latex.codecogs.com/gif.latex?\inline&space;\dfrac{0.007\text{seconds/read}&space;\cdot&space;20\text{M&space;reads}}{3600\text{seconds/hour}}&space;=&space;39\text{hours}). Thus, the entire matching process of our workflow needs to be parallelized.
 
-We want to parallelize this matching process by using a Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself. However, for a given sequencing read, we should be able to parallelize the 80,000 edit distance calculations that need to be performed between the sequencing read and the guides by using Python multi-threading.
-
+We want to parallelize this matching process by using an AWS EMR Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance calculation for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself, so we do not see a need for other parallelization tools such as OpenMP or MPI. Spark will be the main tool we use to parallelize this application.
+![](pipeline_graph2.jpg)
 
 ## Scaling
 
@@ -141,28 +141,26 @@ Thus, we almost achieve perfect weak-scaling because we can split up larger prob
 
 ## Edit Distance Algorithm
 
-To calculate edit distance we applied an dynamic programming algorithm known as the [Wagner-Fischer algorithm](https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm). In recognition of the fact that the vast majority of reference sequences would bare little resemblence to any particular test sequence, we implemented a speed-up heuristic that aborted the edit distance calculation for any two sequences once the edit distance grew any larger than 3. Implementing this heuristic provided a speed-up of just over 3. The reasoning for a cut-off of 3 for edit distances is that for a sequence of 20 base-pairs, more than three differences is indicative of the sequences being poorly matched.
+To calculate edit distance we applied an dynamic programming algorithm known as the [Wagner-Fischer algorithm](https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm). In recognition of the fact that the vast majority of reference sequences would bare little resemblence to any particular test sequence, we implemented a speed-up heuristic that aborted the edit distance calculation for any two sequences once the edit distance grew any larger than 3. Implementing this heuristic provided a speed-up of just over 3x. The reasoning for a cut-off of 3 for edit distances is that for a sequence of 20 base-pairs, more than three differences is indicative of the sequences being poorly matched.
 
 ## Infrastructure
 
-![](pipeline_graph2.jpg)
-
-We used AWS EMR Spark Clusters, tested with multiple instance types.
+We tested our parallelized code using m4.xlarge, m4.10xlarge, and m4.16xlarge instances.
 
 #### m4.xlarge instance
 
-The m4.xlarge instances have 4 vCPUs, 16GiB memory, and 32 GiB of EBS storage. The following information contain the architecture of the instance, the number of vCPUs, threads per vCPU/core, the processor, and the cache sizes:<br>
-	`Architecture:          x86_64
-	CPU(s):                4
-	On-line CPU(s) list:   0-3
-	Thread(s) per core:    2
-	Core(s) per socket:    2
-	Socket(s):             1
-	Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz
-	L1d cache:             32K
-	L1i cache:             32K
-	L2 cache:              256K
-	L3 cache:              46080K`
+The m4.xlarge instances have 4 vCPUs, 16GiB memory, and 32 GiB of EBS storage. The following information contain the architecture of the instance, the number of vCPUs, threads per core, the processor, and the cache sizes:<br>
+	`Architecture:          x86_64`<br>
+	`CPU(s):                4`<br>
+	`On-line CPU(s) list:   0-3`<br>
+	`Thread(s) per core:    2`<br>
+	`Core(s) per socket:    2`<br>
+	`Socket(s):             1`<br>
+	`Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz`<br>
+	`L1d cache:             32K`<br>
+	`L1i cache:             32K`<br>
+	`L2 cache:              256K`<br>
+	`L3 cache:              46080K`<br>
 
 Depending on the instance usage, different python commands need to be used. One needs to run `export PYSPARK_PYTHON=python3.5` (for a stand-alone instance) or `export PYSPARK_PYTHON=python3.4` (for a cluster) in command line to use python3.4 as default python for Spark Cluster. Spark clusters already have `numpy` and `scipy`.
 
