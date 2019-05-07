@@ -242,10 +242,110 @@ TO DO
 
 # Results
 
+#### Testing Sequential Code on Single m4.xlarge Instance
+
+Running with *control_file_100_seqs.txt* and *experimental_file_100_seqs.txt* input files took 12 minutes and 54 seconds to run sequentially. Both of these input file were constructed with 75 perfect matching reads and 25 that required ED calculation. About 12 of the ED sequencing reads come in the first 50 lines of each input file to split them up evenly. Output matches the output from running code on personal machines.
+
+#### Testing Spark Code in Local Mode on Single m4.xlarge Instance
+
+The code for this is available [here](https://github.com/rohuba/PACS/blob/master/spark_code/spark_implementation_local.py).
+
+This was run on the testing input files *control_file_100_seqs.txt* and *experimental_file_100_seqs.txt*. 2, 3 and 4 cores were tried, however only two cores per core are given, meaning that no results could be acquired for 3 or 4 cores. We modified the `spark_implementation_local.py` code by including a `[c]` (where $c=2,3,4$) in the code at `SparkConf().setMaster('local[c]')`. 
+
+The following command was used to run tests:<br>
+`spark-submit spark_implementation_local.py -u control_file_100_seqs.txt -s experimental_file_100_seqs.txt -g Brie_CRISPR_library_with_control_guides.csv -o spark_run_1_core`.
+
+The table below lists the number of cores used in local mode, the elapsed time, and the speed-up.
+
+|Number of cores| Elapsed time |Speed-up|
+|---------------|--------------|--------|
+|1 |  685 sec | -|
+|2 |  352 sec |1.94x|
+
+#### Testing Spark Code on Cluster of m4.xlarge Instances
+
+The code for this is available [here](https://github.com/rohuba/PACS/blob/master/spark_code/spark_implementation_distributed.py).
+
+To tune the task/partition value for breaking up input files, the Spark application was changed to be able to take in a user-defined variable for the number of partitions the input files should be split into through command-line; the flag `-n` allows the user to define the number of partitions. Within this code, partition number for Spark was changed by adding an argument in `sc.textFile("control_file_100_seqs.txt", n)` where `n` is the number of partitions specified by the user through the `-n` flag.
+
+The table below shows efforts to tune different parameters and improve the speed-up when using up to 8 nodes. The speed-up is compared to the performance of 1 core on 1 node of a m4.xlarge instances. 
+
+The following command was used:<br>
+`spark-submit --num-executors 2 --executor-cores 2 spark_implementation_distributed.py -u control_file_100_seqs.txt -s experimental_file_100_seqs.txt -g Brie_CRISPR_library_with_control_guides.csv -o spark_run_4_core -n 4`
+
+|Number of worker nodes| Number of cores|Number of tasks| Elapsed time |Speed-up|
+|---------------|--------------|--------------|--------|--------------|
+|2 | 2 | 4 |  439 sec | 1.56x|
+|2 | 2 | 32 |  249 sec | 2.75x|
+|2 | 2 | 50 |  243 sec | 2.82x|
+|4 | 2 | 32 |   144 sec | 4.76x|
+|4 | 2 | 50 |   148 sec | 4.63x|
+|8 | 2 | 32 |   139 sec | 4.93x|
+|8 | 2 | 50 |  81 sec |8.46x|
+|8 | 2 | 75 |   106 sec |6.46x|
+
+From this table, we  see that more cores and more tasks give better performance. Interestingly, with 8 nodes and using 2 cores on each node, for a total of 16 threads, the performance is about equivalent to using 4 instances with 2 cores each. This is most likely because the 32 tasks on the 8 nodes causes load-balancing issues where one or two nodes get slowed down by too many edit distance calculations. Once we increase the number of tasks/partitions to 50, we see that we get ~8.5x speed-up. For these input files of 100 sequencing reads each, 75 tasks/partitions introduces more synchronization and communication overhead for Spark resulting in lower performance than the run with 50 tasks.
+
 ![](speedup.png)
+The real speed-up achieved is lower than the theoretical speed-up calculated using Amdahl's Law for a fixed problem size. As we increase the number of processors, the real speed-up does not follow the close-to-linear trend that was theoretically calculated. This is likely due to increased overhead due to data management and movement caused by using more cores and smaller partitions.
+
+Since we do not know which sequences from our input files we will need to perform edit distance calculations for, it is probably best to separate the input file into as many partitions as possible because this will spread out the sequences that require edit distance calculations over as many cores as possible. As seen above, there is a performance-overhead trade-off when using more and more partitions. Using a few instances with many cores may prove to be better than using many instances that each have a couple of cores.
+
+Next, we scaled up the problem size and instance size.
+
+### Testing with 1000seq Input Files
+
+We scaled up the input files ten-fold by making each input file 1000 sequence reads; each file contains 750 sequence reads that perfectly match one of the 80,000 guides and 250 sequence reads that require edit distance calculation. These files are called *control_file_1000_seqs.txt* and *experimental_file_1000_seqs.txt*. Even using two 1000 sequence read files is only $0.01$% of our full dataset.
+
+If we were to run these input files on a single m4.xlarge instance using 1 core, we calculate that this would take
+$$
+\left(\dfrac{685\text{sec}}{200\text{ sequences}}\right) \cdot 2000\text{ sequences} = 6,850 \text{sec} = 1.90\text{hrs}
+$$
+
+Below is a table of the performance of multiple *m4.xlarge* instances on these 1000 sequence input files. The speed-up is calculated against our calculation of how long it would take to process this data on one core of a *m4.xlarge* instance.
+
+|Number of worker nodes| Number of cores|Number of tasks| Elapsed time |Speed-up|
+|---------------|--------------|--------------|--------|--------------|
+|8 | 2 | 50 |  699 sec | 9.79x|
+|8 | 2 | 100 |   634 sec |10.8x|
+|8 | 2 | 500 |    600 sec |11.4x|
+
+#### Testing with m4.10xlarge Instances in Cluster
+
+The following command was run:<br>
+`spark-submit --num-executors 4 --executor-cores 20 spark_implementation_distributed.py -u control_file_1000_seqs.txt -s experimental_file_1000_seqs.txt -g Brie_CRISPR_library_with_control_guides.csv -o spark_run_4_core -n 250`.
+
+The speed-up is calculated against our calculation of how long it would take to process this data on one core of a m4.xlarge instance.
+
+|Number of worker nodes| Number of cores|Number of tasks| Elapsed time |Speed-up|
+|---------------|--------------|--------------|--------|--------------|
+|2 | 20 | 500 |   277 sec | 24.7x|
+|4 | 20 | 250 |  191 sec | 35.9x|
+|4 | 40 | 250 |   185 sec | 37x|
+|4 | 20 | 500 |   160 sec | 42.8x|
+|4 | 20 | 750 |    159 sec | 43.1x|
+
+Even though the *m4.10xlarge* instances offer 40 vCPUs, the speed-up by specifying 20 cores versus 40 cores when using 250 tasks is not very different, indicating that the user is really only getting 20 threads.
+
+#### Testing with m4.16xlarge Instances in Cluster
+
+The following command was run:<br>
+`spark-submit --num-executors 4 --executor-cores 32 spark_implementation_distributed.py -u control_file_1000_seqs.txt -s experimental_file_1000_seqs.txt -g Brie_CRISPR_library_with_control_guides.csv -o spark_run_4_core -n 250`.
+
+The speed-up is calculated against our calculation of how long it would take to process this data on one core of a m4.xlarge instance.
+
+|Number of worker nodes| Number of cores|Number of tasks| Elapsed time |Speed-up|
+|---------------|--------------|--------------|--------|--------------|
+|2 | 32 | 500 |  195 sec | x|
+|4 | 32 | 250 |  156 sec | 43.9x|
+|4 | 64 | 250 |   150 sec | 45.7x|
+|4 | 32 | 500 |   129 sec | 53.1x|
+|4 | 32 | 500 |   123 sec | 55.7x|
 
 * * * 
+
 # Cost-Performance Analysis
+
 * * *
 
 # Discussion
