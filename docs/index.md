@@ -382,11 +382,16 @@ As we did with the *m4.10xlarge* cluster, we made sure that 32 cores was the rig
 Again, we observe that 500 tasks seem optimal for this problem size of 1000 sequences per input file, even with the availability of more cores. Like with the *m4.10xlarge* instances, we also see that there is some increased overhead when we increase the number of total cores used from 64 to 128 (fixed number of partitions at 500) because with 128 cores we should be able to achieve ~70x speed-up, but we only see 53x speed-up.
 
 ![](larger_speedup.jpg)
-The speed-up used for the *m4.10xlarge* and *m4.16xlarge* instances in the graphs are based on using 500 tasks/partitions. Although 99% of our runtime for this application comes from a portion of the code that is parallelized, we see that our theoretical speed-up falls quite far under the linear speed-up we would hope to achieve. However, our true speed-up is even quite a bit below
+The speed-up used for the *m4.10xlarge* and *m4.16xlarge* instances in the graphs are based on using 500 tasks/partitions. Although 99% of our runtime for this application comes from a portion of the code that is parallelized, we see that our theoretical speed-up falls quite far under the linear speed-up we would hope to achieve. However, our true speed-up is even  below the theoretical speed-up, as we observed for the *m4.xlarge* instances, because there are increases in communication and memory management overheads as more instances and cores are used. It is important to acknowledge these overheads because sometimes they can be mitigated but usually never eliminated.
+
+#### Extrapolation to full dataset
+To fully analyze a CRISPR genetic screen, ~20M sequences need to be processed. About 4-5M of these sequences require edit distance calculations. Using our best results with 4 *m4.16xlarge* instances and 32 cores/node, it takes<br>
+![equation](https://latex.codecogs.com/gif.latex?\dfrac{129\text{&space;sec}}&space;{2000&space;\text{&space;sequences}}&space;=&space;0.065&space;\text{&space;sec/sequence}&space;*&space;20M\text{&space;sequences}&space;=&space;1,290,000&space;\text{&space;sec}&space;=&space;\sim15&space;\text{&space;days})
 
 * * *
 
 # Cost-Performance Analysis
+As an advanced feature of our application, we performed a cost-performance analysis.
 
 We extrapolate the improvements in runtime based on improvements made with fewer instances and cores. AWS wouldn't allow us to provision enough instances that would allow us to test these extrapolations. However we only extrapolated performance tested on 2-4 instances to up to 15 instances, and so although clusters of a larger size would have more overhead (and hence lower performance than we anticipate), we felt comfortable using these assumptions. 
 
