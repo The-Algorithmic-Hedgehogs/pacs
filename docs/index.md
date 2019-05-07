@@ -409,13 +409,22 @@ Overall we believe that this cost vs. performance profile will prove to be usefu
 
 # Discussion
 
-TO DO
+#### Goals and Improvement
+Our goal for this project was to build an application that parallelized the mapping and edit distance operations of the analysis pipeline. We successfully built this application using Spark and achieved very good speed-up. However, this application still is not ideal for the timeline on which biologists performing CRISPR genetic screens would like to have their results because by our calculation, the runtime on a full dataset would take ~15 days based on our tests. We believe that with access to a greater number of instances and resources this performance could increase greatly, but those tests would need to be run in the future. 
+
+Based on our cost-performance analysis for using AWS instances for running this application, we observe costs in the thousands of dollars, which may not be feasible for biologists' budgets. Because of the explosion of "Big Data" in biology, many research institutions have created their own high-performance computings clusters, such as Harvard's Odyssey and Stanford's Sherlock clusters. Using the computing resources of these clusters would probably be ideal for this application since we need access to as many cores as possible based on the way the application is currently built.
+
+#### Challenges and Lessons Learnt
+One of the main challenges that we ran into was gaining access to high-performance computing instances on AWS. We were unable to get our instance limits for the *m4.10xlarge* and *m4.16xlarge* to the desired number since we were still "novices" in using AWS services. It would have been interesting to test our application on clusters of 8, 16 and even 32 worker nodes, so we could better understand our performance and scaling. Furthermore, we thought this application would be something that a user could download and use on his/her own AWS cluster. However, it would probably be very difficult for a novice AWS user (as we assume most biologists are) to get a hold of large number of HPC instances needed to use this application. Thus, this application would ideally have to be hosted some through some system.
+
+Another challenge we ran into was that parallelizing through a Spark cluster makes it difficult to use other programming models that we learned. AWS clusters can be initialized with certain software (like OpenACC or OpenMP) using bootstrapping, however this was something we could not figure, which limited the solution we developed. Furthermore, these clusters must be initiated with every use, which can require some waiting (sometimes 30-40min depending on instance type), and shutdown after every use. This is another reason that using a HPC cluster could be ideal. Future work would focus on integrating the other programming models with Spark to produce a more efficient pipeline that could perform the task we desire in a reasonable time.
+
 
 # Future Work
 
 1. Allow user to specify where input files are in an S3 bucket. Currently, this would require more configuration in the Spark application to take in a user's private key in addition to the path to the input files, thus we did not implement this now.
 2. Test the use of GPUs for calculating edit distance 80,000 times for a sequence. Due to the difficulty of configuring a Spark cluster to run with GPU instances (installation of CUDA and OpenACC on each worker node), we did not try to implement this. This would require extra overhead as well because of memory movement to/from GPU; NVIDIA Tesla K80 has about 5000 cores, so we would have to perform at least 16 read and write operations to/from GPU memory to calculate the edit distances for a single sequence.
-3. Analyze control and experimental files on separate clusters and possibly use some message passing.
+3. Analyze control and experimental files on separate clusters and use some message passing to synchronize the processes. It would be interesting to try this form of parallelization, since it would cut the runtime in half because the control and experimental files are usually the same size. This form of parallelization could get very expensive for the user however.
 
 # References
 
