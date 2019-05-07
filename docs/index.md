@@ -145,16 +145,18 @@ where $p$ is the number of processors/cores. In our case, $c=0.994$ and the tabl
 
 Thus, we almost achieve perfect weak-scaling because we can split up larger problem-sizes (which would be larger input files in our case) over more processors to achieve about the same runtime.
 
-
 ## Data
 
 TO DO
 
 ## Pipeline
 
+![](pipeline_graph.jpg)
+
+
 TO DO
 
-## Speedup Algorithm
+## Edit Distance Algorithm
 
 TO DO
 
