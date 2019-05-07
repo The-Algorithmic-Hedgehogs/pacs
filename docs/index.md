@@ -377,11 +377,12 @@ The speed-up is calculated against our calculation of how long it would take to 
 |4 | 32 | 500 |   129 sec | 53.1x|
 |4 | 32 | 750 |   123 sec | 55.7x|
 
-As we did with the *m4.10xlarge* instance, we made sure that 32 cores was the right number to specify for the number of cores per node by testing the performance of both 32 cores/node and 64 cores/node. AWS says that a *m4.16xlarge* instance has 64 vCPUs, however again we see that there is very little difference in the performance between specifying 32 cores/node and 64 core/node. Thus, we did the rest of our tests with 32 core/node.
+As we did with the *m4.10xlarge* cluster, we made sure that 32 cores was the right number to specify for the number of cores per node by testing the performance of both 32 cores/node and 64 cores/node. AWS says that a *m4.16xlarge* instance has 64 vCPUs, however again we see that there is very little difference in the performance between specifying 32 cores/node and 64 core/node. Thus, we did the rest of our tests with 32 core/node.
 
 Again, we observe that 500 tasks seem optimal for this problem size of 1000 sequences per input file, even with the availability of more cores. Like with the *m4.10xlarge* instances, we also see that there is some increased overhead when we increase the number of total cores used from 64 to 128 (fixed number of partitions at 500) because with 128 cores we should be able to achieve ~70x speed-up, but we only see 53x speed-up.
 
-
+![](larger_speedup.jpg)
+The speed-up used for the *m4.10xlarge* and *m4.16xlarge* instances in the graphs are based on using 500 tasks/partitions. Although 99% of our runtime for this application comes from a portion of the code that is parallelized, we see that our theoretical speed-up falls quite far under the linear speed-up we would hope to achieve. However, our true speed-up is even quite a bit below
 
 * * *
 
