@@ -20,8 +20,6 @@ In our particular experimental problem, we are looking at the [Shh](https://en.w
 
 ## Problem Description
 
-![](pipeline_graph.jpg)
-
 The output of the biological experiment for a CRISPR genetic screen consists of two files of DNA sequences:<br>
 1) one file contains the DNA sequences from the control population of cells, (those that do not express the phenotype of interest) which we will call the *control file*<br>
 2) the second file contains the DNA sequences from cells that were selected for some phenotype of interest, which we will call the *experimental file*.
@@ -35,10 +33,11 @@ Thus, this is a “Big Compute” problem because we need to compute these edit 
 MaGECK is an open-source pipeline for analyzing CRISPR screens (2) based on mean-variance modeling of the read counts for every gene. This pipeline provides read counts for genes given input control and experimental files, however it does not include a edit distance feature to determine the most likely gold-standard sequence for a sequencing read that did not perfectly match a gold-standard sequence. Additionally, MaGECK is considered a black-box program with statistics that are not well understood by general biologists. Our application would provide a missing functionality that would allow researchers to extract more information from their screens and give researchers a tool that can be clearly explained.
 
 
-## Existing Pipeline Analysis
-The existing pipeline takes in a *control file* and *experiment file* generated from the DNA sequencing step of the genetic screen. It also takes in a file containing the "database" of 80,000 gold-standard sequences. First, every DNA sequence in the *control file* is mapped to one of the gold-standard sequences; if the sequence matches one of the gold-standard sequences, then the match count for gold-standard sequence is incremented and the match count for corresponding gene is incremented. If no perfect match can be determined, then the edit distance between the control DNA sequence and every gold-standard sequence is calculated. The gold-standard DNA sequence with the lowest edit distance is found, and its match count and the match count for the coressponding gene are incremented. Once all the DNA sequences in the *control file* have been matched, this process is repeated for the *experimental file*. The match counts for genes in the *control file* and the *experiment file* are aggregated, and a Fisher's exact test is run on the match counts from both files to determine if there is a significant change in the number of matched sequences for each gene in the *experimental file* when compared to the *control file*. The output of the pipeline consists of, for each gene, its Fisher's exact test p-value, the number of matching sequences in the *control file*, the total number of sequences in the *control file*, the number of matching sequences in the *experimental file*, and the total number of sequences in the *experimental file*. These stats are written to a CSV file.
+## Existing Pipeline
+![](pipeline_graph.jpg)
+Shown above, the existing pipeline (1) takes in a *control file* and *experiment file* generated from the DNA sequencing step of the genetic screen. It also takes in a file containing the "database" of 80,000 gold-standard sequences. First, every DNA sequence in the *control file* is mapped to one of the gold-standard sequences; if the sequence matches one of the gold-standard sequences, then the match count for gold-standard sequence is incremented and the match count for corresponding gene is incremented. If no perfect match can be determined, then the edit distance between the control DNA sequence and every gold-standard sequence is calculated. The gold-standard DNA sequence with the lowest edit distance is found, and its match count and the match count for the corresponding gene are incremented. Once all the DNA sequences in the *control file* have been matched, this process is repeated for the *experimental file*. The match counts for genes in the *control file* and the *experiment file* are aggregated, and a Fisher's exact test is run on the match counts from both files to determine if there is a significant change in the number of matched sequences for each gene in the *experimental file* when compared to the *control file*. The output of the pipeline consists of, for each gene, its Fisher's exact test p-value, the number of matching sequences in the *control file*, the total number of sequences in the *control file*, the number of matching sequences in the *experimental file*, and the total number of sequences in the *experimental file*. These stats are written to a CSV file.
 
-The code for the exisiting sequential pipeline for analyzing the results of CRISPR genetic screens can be found [here](https://github.com/rohuba/PACS/blob/master/sequential_pipeline/sequential_analysis.py). The Python script `sequential_analysis.py` takes in multiple arguments through the use of command-line flags:<br>
+The code for the exisiting sequential pipeline for analyzing the results of CRISPR genetic screens can be found [here](https://github.com/rohuba/PACS/blob/master/sequential_pipeline/sequential_analysis.py). This script requires use of Python3 and relies on the use the `numpy` and `scipy` packages. Any user can install a Conda environment using the [YAML file](https://github.com/rohuba/PACS/blob/master/cs205_final_project.yml) provided to run this sequential code. The Python script `sequential_analysis.py` takes in multiple arguments through the use of command-line flags:<br>
     1. `-u` indicates the file following file path if for the *control file*<br>
     2. `-s` indicates the file following file path if for the *experimental file*<br>
     3. `-g` indicates the file following file path if for a CSV file containing the 80,000 gold-standard sequences<br>
@@ -54,6 +53,8 @@ The output of the script is a CSV file with six columns with the following infor
     4. Total number of DNA sequences in *control file*
     5. Number of DNA sequences from *experimental file* mapping to gold-standard sequences contained in this gene<br>
     6. Total number of DNA sequences in *experimental file*
+    
+An example of the output file for running the sequential analysis on the control file `control_file_100_seqs.txt` and the experimental file `experimental_file_100_seqs.txt` can be found [here](https://github.com/rohuba/PACS/blob/master/sequential_pipeline/test_output_gene_enrichment_calculation.csv).
     
 # Project Design
 
@@ -101,20 +102,18 @@ p.sort_stats('time').print_stats(20)
 
 The majority of runtime is spent with `editDistDP` function. 534 of the 537 seconds, which accounts for 99.4% of the runtime, are spent calculating the edit distance between 50 sequencing reads and 80,000 guides. Generally, the input files contain ~10M sequencing reads, and about 25% of the sequences cannot be matched perfectly to one of the 80,000 guides. Thus for two input files of ~10M sequencing reads (~20M reads total), there are ~4-5M sequencing reads for which the edit distance calculations must be performed. If this code was run sequentially, this would require 10,000 hours of runtime. Therefore, we need to parallelize this portion of the code.
 
-The edit distance calculation is currently nested within the function `count_spacers`, which matches each sequencing read from the input files to one of the 80,000 guides. For 200 sequencing reads provided as input, 1.4 seconds are spent performing the matching. This is only 0.007 seconds per sequencing read (using the 1.4 seconds from the *tottime* column since the *cumtime* takes into account the edit distance calculation). This number grows large if we have 20M sequencing reads - it would take $\dfrac{0.007\text{seconds/read} \cdot 20\text{M reads}}{3600\text{seconds/hour}} = 39\text{hours}$. Thus, the entire matching process of our workflow needs to be parallelized.
+The edit distance calculation is currently nested within the function `count_spacers`, which matches each sequencing read from the input files to one of the 80,000 guides. For 200 sequencing reads provided as input, 1.4 seconds are spent performing the matching. This is only 0.007 seconds per sequencing read (using the 1.4 seconds from the *tottime* column since the *cumtime* takes into account the edit distance calculation). This number grows large if we have 20M sequencing reads - it would take ![equation](https://latex.codecogs.com/gif.latex?\inline&space;\dfrac{0.007\text{seconds/read}&space;\cdot&space;20\text{M&space;reads}}{3600\text{seconds/hour}}&space;=&space;39\text{hours}). Thus, the entire matching process of our workflow needs to be parallelized.
 
-We want to parallelize this matching process by using a Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself. However, for a given sequencing read, we should be able to parallelize the 80,000 edit distance calculations that need to be performed between the sequencing read and the guides by using Python multi-threading.
-
+We want to parallelize this matching process by using an AWS EMR Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance calculation for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself, so we do not see a need for other parallelization tools such as OpenMP or MPI. Spark will be the main tool we use to parallelize this application.
+![](pipeline_graph2.jpg)
 
 ## Scaling
 
 The sequence matching and edit distance portion of our code accounts for 99.4% of the runtime in our small example. With larger problem sizes, this percentage should only increase because the number of operations performed after the sequence matching and edit distance section is constant.
 
-Amdahl's Law states that potential program speedup $S_t$ is defined by the fraction of code $c$ that can be parallelized, according to the formula
-$$
-S_t = \dfrac{1}{(1-c)+\frac{c}{p}}
-$$
-where $p$ is the number of processors/cores. In our case, $c=0.994$ and the table below shows the speed-ups for $2$, $4$, $8$, $64$, and $128$ processors/cores:
+Amdahl's Law states that potential program speedup ![equation](https://latex.codecogs.com/gif.latex?S_t) is defined by the fraction of code *c* that can be parallelized, according to the formula<br>
+![equation](https://latex.codecogs.com/gif.latex?S_t&space;=&space;\dfrac{1}{(1-c)&plus;\frac{c}{p}})<br>
+where *p* is the number of processors/cores. In our case, *c=0.994* and the table below shows the speed-ups for 2, 4, 8, 64, and 128 processors/cores:
 
 |processors|speed-up|
 |----------|--------|
@@ -124,13 +123,11 @@ where $p$ is the number of processors/cores. In our case, $c=0.994$ and the tabl
 |64|46.44x|
 |128|72.64x|
 
-Thus, our strong-scaling is almost linear when $p$ is small, but we observe that this begins to break down because we only get 73x speed-up if we were to use 128 processors/cores.
+Thus, our strong-scaling is almost linear when *p* is small, but we observe that this begins to break down because we only get 73x speed-up if we were to use 128 processors/cores.
 
-Gustafson's Law states larger systems should be used to solve larger problems because there should ideally be a fixed amount of parallel work per processor. The speed-up $S_t$ is calculated by
-$$
-S_t = 1 - c +c\cdot p
-$$
-where $p$ is the number of processors/cores. In our case, $c=0.994$ and the table below shows the speed-ups for $2$, $4$, $8$, $64$, and $128$ processors/cores:
+Gustafson's Law states larger systems should be used to solve larger problems because there should ideally be a fixed amount of parallel work per processor. The speed-up ![equation](https://latex.codecogs.com/gif.latex?S_t) is calculated by<br>
+![equation](https://latex.codecogs.com/gif.latex?S_t&space;=&space;1&space;-&space;c&space;&plus;c\cdot&space;p)<br>
+where *p* is the number of processors/cores. In our case, *c=0.994* and the table below shows the speed-ups for 2, 4, 8, 64, and 128 processors/cores:
 
 |processors|speed-up|
 |----------|--------|
@@ -144,28 +141,26 @@ Thus, we almost achieve perfect weak-scaling because we can split up larger prob
 
 ## Edit Distance Algorithm
 
-To calculate edit distance we applied an dynamic programming algorithm known as the [Wagner-Fischer algorithm](https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm). In recognition of the fact that the vast majority of reference sequences would bare little resemblence to any particular test sequence, we implemented a speed-up heuristic that aborted the edit distance calculation for any two sequences once the edit distance grew any larger than 3. Implementing this heuristic provided a speed-up of just over 3. The reasoning for a cut-off of 3 for edit distances is that for a sequence of 20 base-pairs, more than three differences is indicative of the sequences being poorly matched.
+To calculate edit distance we applied an dynamic programming algorithm known as the [Wagner-Fischer algorithm](https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm). In recognition of the fact that the vast majority of reference sequences would bare little resemblence to any particular test sequence, we implemented a speed-up heuristic that aborted the edit distance calculation for any two sequences once the edit distance grew any larger than 3. Implementing this heuristic provided a speed-up of just over 3x. The reasoning for a cut-off of 3 for edit distances is that for a sequence of 20 base-pairs, more than three differences is indicative of the sequences being poorly matched.
 
 ## Infrastructure
 
-![](pipeline_graph2.jpg)
-
-We used AWS EMR Spark Clusters, tested with multiple instance types.
+We tested our parallelized code using m4.xlarge, m4.10xlarge, and m4.16xlarge instances.
 
 #### m4.xlarge instance
 
-The m4.xlarge instances have 4 vCPUs, 16GiB memory, and 32 GiB of EBS storage. The following information contain the architecture of the instance, the number of vCPUs, threads per vCPU/core, the processor, and the cache sizes:<br>
-	`Architecture:          x86_64
-	CPU(s):                4
-	On-line CPU(s) list:   0-3
-	Thread(s) per core:    2
-	Core(s) per socket:    2
-	Socket(s):             1
-	Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz
-	L1d cache:             32K
-	L1i cache:             32K
-	L2 cache:              256K
-	L3 cache:              46080K`
+The m4.xlarge instances have 4 vCPUs, 16GiB memory, and 32 GiB of EBS storage. The following information contain the architecture of the instance, the number of vCPUs, threads per core, the processor, and the cache sizes:<br>
+	`Architecture:          x86_64`<br>
+	`CPU(s):                4`<br>
+	`On-line CPU(s) list:   0-3`<br>
+	`Thread(s) per core:    2`<br>
+	`Core(s) per socket:    2`<br>
+	`Socket(s):             1`<br>
+	`Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz`<br>
+	`L1d cache:             32K`<br>
+	`L1i cache:             32K`<br>
+	`L2 cache:              256K`<br>
+	`L3 cache:              46080K`<br>
 
 Depending on the instance usage, different python commands need to be used. One needs to run `export PYSPARK_PYTHON=python3.5` (for a stand-alone instance) or `export PYSPARK_PYTHON=python3.4` (for a cluster) in command line to use python3.4 as default python for Spark Cluster. Spark clusters already have `numpy` and `scipy`.
 
