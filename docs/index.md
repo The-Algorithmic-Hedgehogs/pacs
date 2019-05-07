@@ -49,7 +49,7 @@ Command-line Example:<br>
 
 The output of the script is a CSV file with six columns with the following information:
     1. Name of the gene<br>
-    2. $p$-value from Fisher's exact test for enrichment<br>
+    2. *p*-value from Fisher's exact test for enrichment<br>
     3. Number of DNA sequences from *control file* mapping to gold-standard sequences contained in this gene<br>
     4. Total number of DNA sequences in *control file*
     5. Number of DNA sequences from *experimental file* mapping to gold-standard sequences contained in this gene<br>
@@ -105,11 +105,6 @@ The edit distance calculation is currently nested within the function `count_spa
 
 We want to parallelize this matching process by using a Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself. However, for a given sequencing read, we should be able to parallelize the 80,000 edit distance calculations that need to be performed between the sequencing read and the guides by using Python multi-threading.
 
-## Overheads 
-
-Since we do not know for which sequences we will need to perform edit distance calculations, load-balancing is the main overhead we anticipate dealing with because we do not want one or two cores slowed down with having to compute too many edit distance calculations. We would like to spread the number of edit distance calculations out evenly between cores by tuning the number of Spark tasks. It may be good to shuffle the order of the sequencing reads because sometimes many sequences that require edit distance calculations are adjacent to each other in the input file.
-
-If we try to use a GPU to perform the 80,000 edit distance calculations in parallel, memory-transfer (input/output) to the GPU would also be an overhead. For a single sequencing read, multiple transfers would need to be performed as we would not be able to perform the 80,000 calculations in parallel, since we are limited by the number of cores on the GPU. Currently, we do not have a good way of mitigating this GPU overhead.
 
 ## Scaling
 
@@ -345,6 +340,11 @@ The speed-up is calculated against our calculation of how long it would take to 
 |4 | 32 | 500 |   123 sec | 55.7x|
 
 * * * 
+
+## Overheads 
+
+Since we do not know for which sequences we will need to perform edit distance calculations, load-balancing is the main overhead we anticipate dealing with because we do not want one or two cores slowed down with having to compute too many edit distance calculations. We would like to spread the number of edit distance calculations out evenly between cores by tuning the number of Spark tasks. It may be good to shuffle the order of the sequencing reads because sometimes many sequences that require edit distance calculations are adjacent to each other in the input file.
+
 
 # Cost-Performance Analysis
 
