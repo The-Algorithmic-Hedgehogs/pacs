@@ -103,6 +103,8 @@ The edit distance calculation is currently nested within the function `count_spa
 
 We want to parallelize this matching process by using a Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself. However, for a given sequencing read, we should be able to parallelize the 80,000 edit distance calculations that need to be performed between the sequencing read and the guides by using Python multi-threading.
 
+![](pipeline_graph.jpg)
+
 ## Overheads 
 
 Since we do not know for which sequences we will need to perform edit distance calculations, load-balancing is the main overhead we anticipate dealing with because we do not want one or two cores slowed down with having to compute too many edit distance calculations. We would like to spread the number of edit distance calculations out evenly between cores by tuning the number of Spark tasks. It may be good to shuffle the order of the sequencing reads because sometimes many sequences that require edit distance calculations are adjacent to each other in the input file.
@@ -149,16 +151,11 @@ Thus, we almost achieve perfect weak-scaling because we can split up larger prob
 
 TO DO
 
-## Pipeline
-
-![](pipeline_graph.jpg)
-
-
 TO DO
 
 ## Edit Distance Algorithm
 
-TO DO
+To calculate edit distance we applied an dynamic programming algorithm known as the [Wagner-Fischer algorithm](https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm). In recognition of the fact that the vast majority of reference sequences would bare little resemblence to any particular test sequence, we implemented a speed-up heuristic that aborted the edit distance calculation for any two sequences once the edit distance grew any larger than 3. Implementing this heuristic provided a speed-up of just over 3. The reasoning for a cut-off of 3 for edit distances is that for a sequence of 20 base-pairs, more than three differences is indicative of the sequences being poorly matched.
 
 
 ## Infrastructure
