@@ -168,34 +168,34 @@ From this information, we know that we only really have 2 cores per instance ava
 
 #### m4.10xlarge instance
 The m4.10xlarge instances have 40 vCPUs, 160GiB memory, and 32 GiB of EBS storage. The following information contain the architecture of the instance, the number of vCPUs, threads per core, the processor, and the cache sizes:<br>
-	`Architecture:          x86_64
-	CPU(s):                40
-	On-line CPU(s) list:   0-39
-	Thread(s) per core:    2
-	Core(s) per socket:    10
-	Socket(s):             2
-	Model name:            Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz
-	L1d cache:             32K
-	L1i cache:             32K
-	L2 cache:              256K
-	L3 cache:              30720K`
+	`Architecture:          x86_64`<br>
+	`CPU(s):                40`<br>
+	`On-line CPU(s) list:   0-39`<br>
+	`Thread(s) per core:    2`<br>
+	`Core(s) per socket:    10`<br>
+	`Socket(s):             2`<br>
+	`Model name:            Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz`<br>
+	`L1d cache:             32K`<br>
+	`L1i cache:             32K`<br>
+	`L2 cache:              256K`<br>
+	`L3 cache:              30720K`<br>
 Additionally, m4.10xlarge instances have a dedicated EBS bandwidth of 4,000 Mbps with 10 Gigabit Network Performance.
 
 From this information, we know that we only really have 20 cores per instance available to use, so this is the number of executor cores we will specify when using the Spark cluster.
 
 #### m4.16xlarge instance
 The m4.16xlarge instances have 64 vCPUs, 256GiB memory, and 32 GiB of EBS storage. The following information contain the architecture of the instance, the number of vCPUs, threads per core, the processor, and the cache sizes:<br>
-	`Architecture:          x86_64
-	CPU(s):                64
-	On-line CPU(s) list:   0-63
-	Thread(s) per core:    2
-	Core(s) per socket:    16
-	Socket(s):             2
-	Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz
-	L1d cache:             32K
-	L1i cache:             32K
-	L2 cache:              256K
-	L3 cache:              46080K`
+	`Architecture:          x86_64`<br>
+	`CPU(s):                64`<br>
+	`On-line CPU(s) list:   0-63`<br>
+	`Thread(s) per core:    2`<br>
+	`Core(s) per socket:    16`<br>
+	`Socket(s):             2`<br>
+	`Model name:            Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz`<br>
+	`L1d cache:             32K`<br>
+	`L1i cache:             32K`<br>
+	`L2 cache:              256K`<br>
+	`L3 cache:              46080K`<br>
 Additionally, m4.16xlarge instances have a dedicated EBS bandwidth of 10,000 Mbps with 25 Gigabit Network Performance.
 
 From this information, we know that we only really have 32 cores per instance available to use, so this is the number of executor cores we will specify when using the Spark cluster.
