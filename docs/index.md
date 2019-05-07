@@ -386,7 +386,7 @@ The speed-up used for the *m4.10xlarge* and *m4.16xlarge* instances in the graph
 
 #### Extrapolation to full dataset
 To fully analyze a CRISPR genetic screen, ~20M sequences need to be processed. About 4-5M of these sequences require edit distance calculations. Using our best results with 4 *m4.16xlarge* instances and 32 cores/node, it takes<br>
-![equation](https://latex.codecogs.com/gif.latex?\dfrac{129\text{&space;sec}}&space;{2000&space;\text{&space;sequences}}&space;=&space;0.065&space;\text{&space;sec/sequence}&space;*&space;20M\text{&space;sequences}&space;=&space;1,290,000&space;\text{&space;sec}&space;=&space;\sim15&space;\text{&space;days})
+![equation](https://latex.codecogs.com/gif.latex?\dfrac{129\text{&space;sec}}&space;{2000&space;\text{&space;sequences}}&space;=&space;0.065&space;\text{&space;sec/sequence}&space;*&space;20M\text{&space;sequences}&space;=&space;1,290,000&space;\text{&space;sec})
 
 * * *
 
