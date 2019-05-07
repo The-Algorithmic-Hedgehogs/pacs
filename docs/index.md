@@ -200,11 +200,41 @@ Additionally, m4.16xlarge instances have a dedicated EBS bandwidth of 10,000 Mbp
 
 From this information, we know that we only really have 32 cores per instance available to use, so this is the number of executor cores we will specify when using the Spark cluster.
 
-# Usage 
+# Usage
 
-TO DO
+### Local Mode
+Our Spark application can be run in local mode on a single AWS instance using the script [`spark_implementation_local.py`](https://github.com/rohuba/PACS/blob/master/spark_code/spark_implementation_local.py). The AWS instance needs to be installed with Python3 and the packages `numpy` and `scipy`. Additionally, Apache Spark 2.2.0 must be installed. 
 
-* * *
+Once those dependencies are installed, the user must execute the following command:<br>
+`export PYSPARK_PYTHON=python3.x`<br>
+where *x* is the release installed by the user.
+
+To run the `spark_implementation_local.py` code using more than one core on a single instance, the user can modify the `spark_implementation.py` code by including a `[c]` (where *c=2* or greater) in the code at `SparkConf().setMaster('local[c]')`. 
+
+`spark_implementation_local.py` takes in multiple arguments through the use of command-line flags:<br>
+    1. `-u` indicates the file following file path if for the *control file*<br>
+    2. `-s` indicates the file following file path if for the *experimental file*<br>
+    3. `-g` indicates the file following file path if for a CSV file containing the 80,000 gold-standard sequences<br>
+    4. `-o` indicates the following string will be used as a prefix for the output file<br>
+
+The following command is an example of how to run the application in local mode:<br>
+`spark-submit spark_implementation_local.py -u control_file_100_seqs.txt -s experimental_file_100_seqs.txt -g Brie_CRISPR_library_with_control_guides.csv -o spark_run_1_core`.
+
+### Distributed Mode
+Our Spark application can be run in distributed mode on an AWS EMR Spark cluster using the script [`spark_implementation_distributed.py`](https://github.com/rohuba/PACS/blob/master/spark_code/spark_implementation_distributed.py). AWS EMR Spark clusters already come with Python3.4, `numpy` and `scipy` installed. Before running the application, the user must execute the following command:<br>
+`export PYSPARK_PYTHON=python3.4`<br>.
+
+`spark_implementation_distributed.py` takes in multiple arguments through the use of command-line flags:<br>
+    1. `-u` indicates the file following file path if for the *control file*<br>
+    2. `-s` indicates the file following file path if for the *experimental file*<br>
+    3. `-g` indicates the file following file path if for a CSV file containing the 80,000 gold-standard sequences<br>
+    4. `-o` indicates the following string will be used as a prefix for the output file<br>
+    5. `-n` indicates the number of partitions that the control and experimental file should be split into to be processed on the cluster<br>
+    
+This Spark application conveniently takes care of placing the *control file* and *experimental file* into the Hadoop file system, so the user does not need to do this prior to running the application.
+
+The following command is an example of how to run the application in distributed mode:<br>
+`spark-submit --num-executors 2 --executor-cores 2 spark_implementation_distributed.py -u control_file_100_seqs.txt -s experimental_file_100_seqs.txt -g Brie_CRISPR_library_with_control_guides.csv -o spark_distrb_output -n 50`
 
 # Results
 
