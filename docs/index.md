@@ -104,8 +104,16 @@ The majority of runtime is spent with `editDistDP` function. 534 of the 537 seco
 
 The edit distance calculation is currently nested within the function `count_spacers`, which matches each sequencing read from the input files to one of the 80,000 guides. For 200 sequencing reads provided as input, 1.4 seconds are spent performing the matching. This is only 0.007 seconds per sequencing read (using the 1.4 seconds from the *tottime* column since the *cumtime* takes into account the edit distance calculation). This number grows large if we have 20M sequencing reads - it would take ![equation](https://latex.codecogs.com/gif.latex?\inline&space;\dfrac{0.007\text{seconds/read}&space;\cdot&space;20\text{M&space;reads}}{3600\text{seconds/hour}}&space;=&space;39\text{hours}). Thus, the entire matching process of our workflow needs to be parallelized.
 
-We want to parallelize this matching process by using an AWS EMR Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance calculation for the sequencing reads in a partition. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself, so we do not see a need for other parallelization tools such as OpenMP or MPI. Spark will be the main tool we use to parallelize this application.
+
+## Code Design
+We want to parallelize this matching process by using an AWS EMR Spark cluster to have access to as many cores as possible to perform both the matching process and edit distance calculation (if needed). We will partition each input file into many tasks, and each task will run on a single core of the Spark cluster. A single core will perform both the matching process and edit distance calculation for the sequencing reads in a partition, since this would give us the best utilization of each core and instance. From what we have determined, there is not an easy way to parallelize the edit distance calculation algorithm itself, so we do not see a need for other parallelization tools such as OpenMP or MPI. Spark on AWS will be the main tool we use to parallelize this application.
 ![](pipeline_graph2.jpg)
+
+
+The alternative approach we considered for parallelizing this application was to parallelize the calculation of the 80,000 edit distance calculations that need to be performed when a sequencing read does not perfectly match one of the gold-standard sequences. We had two ideas of how to tackle this:<br>
+1. We use many instances with a large number of cores. Using Spark, we would provide a single core on a single instance with one partition. When the single core has to compute the edit distance for one of the sequencing reads, we could send this work to the other cores provided by the instance using OpenMP or Python multi-threading, thus parallelizing the 80,000 edit distance calculations. The obvious downside to this approach is that most of the cores we are paying for would be utilized only part of the time. Thus, we decided against this approach. <br>
+2. We could use GPU instances in the Spark EMR cluster. Using Spark, we provide all of the CPU cores of the AWS instances with a partition to process. Whenever a CPU core has to compute the edit distance, it hands this work off to the GPU. If we try to use a GPU to perform the 80,000 edit distance calculations in parallel, memory-transfer (input/output) to the GPU would also be an added overhead. For a single sequencing read, multiple transfers would need to be performed because we would not be able to perform the 80,000 calculations completely in parallel because we are limited by the number of cores on the GPU. Additionally, the use of GPU instances would require complex configurations to the EMR cluster, a task that is outside of our knowledge base. For these reasons, we decided not to pursue this approach either.
+
 
 ## Scaling
 
@@ -199,6 +207,10 @@ The m4.16xlarge instances have 64 vCPUs, 256GiB memory, and 32 GiB of EBS storag
 Additionally, m4.16xlarge instances have a dedicated EBS bandwidth of 10,000 Mbps with 25 Gigabit Network Performance.
 
 From this information, we know that we only really have 32 cores per instance available to use, so this is the number of executor cores we will specify when using the Spark cluster.
+
+## Overheads 
+
+Since we do not know for which sequences we will need to perform edit distance calculations, load-balancing is the main overhead we anticipate dealing with because we do not want one or two cores slowed down with having to compute too many edit distance calculations. We would like to spread the number of edit distance calculations out evenly between cores by tuning the number of Spark tasks. This tuning will have to balance creating as many tasks as possible without increasing the communication and memory-management overheads Spark has to deal with when many partitions are created; we do not want the speed-up benefit of better load-balancing to get outweighed by the extra overheads due to communication and memory-management, especially when the number of instances being utilized grows very large.
 
 # Usage
 
@@ -342,9 +354,7 @@ The speed-up is calculated against our calculation of how long it would take to 
 
 * * * 
 
-## Overheads 
 
-Since we do not know for which sequences we will need to perform edit distance calculations, load-balancing is the main overhead we anticipate dealing with because we do not want one or two cores slowed down with having to compute too many edit distance calculations. We would like to spread the number of edit distance calculations out evenly between cores by tuning the number of Spark tasks. It may be good to shuffle the order of the sequencing reads because sometimes many sequences that require edit distance calculations are adjacent to each other in the input file.
 
 
 # Cost-Performance Analysis
