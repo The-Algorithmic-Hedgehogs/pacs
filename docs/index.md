@@ -386,12 +386,14 @@ The speed-up used for the *m4.10xlarge* and *m4.16xlarge* instances in the graph
 
 #### Extrapolation to full dataset
 To fully analyze a CRISPR genetic screen, ~20M sequences need to be processed. About 4-5M of these sequences require edit distance calculations. Using our best results with 4 *m4.16xlarge* instances and 32 cores/node, it takes<br>
-![equation](https://latex.codecogs.com/gif.latex?\dfrac{129\text{&space;sec}}&space;{2000&space;\text{&space;sequences}}&space;=&space;0.065&space;\text{&space;sec/sequence}&space;*&space;20M\text{&space;sequences}&space;=&space;1,290,000&space;\text{&space;sec})
+![equation](https://latex.codecogs.com/gif.latex?\dfrac{129\text{&space;sec}}&space;{2000&space;\text{&space;sequences}}&space;=&space;0.065&space;\text{&space;sec/sequence}&space;*&space;20M\text{&space;sequences}&space;=&space;1,290,000&space;\text{&space;sec})<br>
+
+1,290,000 seconds is ~15 days to get the results of the genetic screen. When this is compared to the sequential runtime of ~833 days (sequential pipeline takes about 20,000 hours to run), this is quite the improvement in performance. Although 15 days is still too long for the biologists to wait for this analysis, this application demonstrates that this process can be improved. Adding more instances to the cluster and trying other instances with greater number of cores, such as the *m5.24xlarge* (48 physical cores), would further decrease the runtime.
 
 * * *
 
 # Cost-Performance Analysis
-As an advanced feature of our application, we performed a cost-performance analysis.
+As an advanced feature of our application, we performed a cost-performance analysis to determine the optimal instance type to use for executing our application.
 
 We extrapolate the improvements in runtime based on improvements made with fewer instances and cores. AWS wouldn't allow us to provision enough instances that would allow us to test these extrapolations. However we only extrapolated performance tested on 2-4 instances to up to 15 instances, and so although clusters of a larger size would have more overhead (and hence lower performance than we anticipate), we felt comfortable using these assumptions. 
 
