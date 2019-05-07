@@ -250,9 +250,16 @@ The following command is an example of how to run the application in distributed
 
 # Results
 
+#### Data
+We used two pairs of datasets to evaluate our code. These datasets were derived from DNA sequencing files from an original CRISPR genetic screen (1). Sequences for the *control file* are taken from a larger [control dataset](https://www.ncbi.nlm.nih.gov/sra/?term=SRX3153094), while sequences for the *experimental file* are taken from a larger [experimental dataset](https://www.ncbi.nlm.nih.gov/sra/?term=SRX3153093).
+
+The first dataset consists of two a *control file* of 100 sequences ([*control_file_100_seqs.txt*](https://github.com/rohuba/PACS/blob/master/data/control_file_100_seqs.txt)) and an *experimental file* of 100 sequences ([*experimental_file_100_seqs.txt*](https://github.com/rohuba/PACS/blob/master/data/experimental_file_100_seqs.txt)). As explained earlier, each of these input files contains 75 sequencing reads that could be perfectly matched to the database of 80,000 guide sequences and 25 sequencing reads that needed an edit distance calculation. This breakdown is representative of the proportion of sequencing reads in the full input files because ~25% of sequencing reads cannot be perfectly matched to one of the 80,000 guide sequences.
+
+The second dataset used for evaluation is 10x larger than the previous dataset. This dataset consists of a a *control file* of 1000 sequences ([*control_file_1000_seqs.txt*](https://github.com/rohuba/PACS/blob/master/data/control_file_1000_seqs.txt)) and an *experimental file* of 100 sequences ([*experimental_file_1000_seqs.txt*](https://github.com/rohuba/PACS/blob/master/data/experimental_file_1000_seqs.txt)). These two files were also constructed so that each one contains 750 sequencing reads that can perfectly matched to one of the 80,000 guides and 250 sequences that require an edit distance calculation. This second dataset was used to evaluate how Spark clusters of more powerful instances perform.
+
 #### Testing Sequential Code on Single m4.xlarge Instance
 
-Running with *control_file_100_seqs.txt* and *experimental_file_100_seqs.txt* input files took 12 minutes and 54 seconds to run sequentially. Both of these input file were constructed with 75 perfect matching reads and 25 that required ED calculation. About 12 of the ED sequencing reads come in the first 50 lines of each input file to split them up evenly. Output matches the output from running code on personal machines.
+To ensure the fidelity of our sequential code the Running with *control_file_100_seqs.txt* and *experimental_file_100_seqs.txt* input files took 12 minutes and 54 seconds to run sequentially. Both of these input file were constructed with 75 perfect matching reads and 25 that required ED calculation. About 12 of the ED sequencing reads come in the first 50 lines of each input file to split them up evenly. Output matches the output from running code on personal machines.
 
 #### Testing Spark Code in Local Mode on Single m4.xlarge Instance
 
