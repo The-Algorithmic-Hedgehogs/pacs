@@ -369,6 +369,14 @@ Parameters were varied as seen in the table below.
 
 The speed-up is calculated against our calculation of how long it would take to process this data on one core of a m4.xlarge instance.
 
+|Number of worker nodes| Number of cores|Number of tasks| Elapsed time |Speed-up|
+|---------------|--------------|--------------|--------|--------------|
+|2 | 32 | 500 |  195 sec | 35.1x|
+|4 | 32 | 250 |  156 sec | 43.9x|
+|4 | 64 | 250 |   150 sec | 45.7x|
+|4 | 32 | 500 |   129 sec | 53.1x|
+|4 | 32 | 750 |   123 sec | 55.7x|
+
 
 
 * * *
