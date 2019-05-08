@@ -396,7 +396,7 @@ To fully analyze a CRISPR genetic screen, ~20M sequences need to be processed. A
 * * *
 
 # Cost-Performance Analysis
-As an advanced feature of our application, we performed a cost-performance analysis to determine the optimal instance type to use for executing our application.
+As an advanced feature of our application, we performed a [cost-performance analysis]() to determine the optimal instance type to use for executing our application.
 
 We extrapolate the improvements in runtime based on improvements made with fewer instances and cores. AWS wouldn't allow us to provision enough instances that would allow us to test these extrapolations. However we only extrapolated performance tested on 2-4 instances to up to 15 instances, and so although clusters of a larger size would have more overhead (and hence lower performance than we anticipate), we felt comfortable using these assumptions. 
 
